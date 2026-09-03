@@ -1,10 +1,10 @@
 locals {
   namespace = "${var.service_name}-${var.environment}"
   labels = {
-    "app.kubernetes.io/name"       = var.service_name
-    "platform.demo/environment"    = var.environment
-    "platform.demo/owner"          = var.owner
-    "platform.demo/managed-by"     = "terraform"
+    "app.kubernetes.io/name"    = var.service_name
+    "platform.demo/environment" = var.environment
+    "platform.demo/owner"       = var.owner
+    "platform.demo/managed-by"  = "terraform"
   }
 }
 

@@ -15,4 +15,9 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 - Added unit, integration, end-to-end, resilience, and benchmark coverage.
 - Added architecture records, threat model, SLOs, runbook, demo guide, and contribution controls.
 
+### Fixed
+
+- Applied canonical Terraform formatting so the infrastructure CI gate passes.
+- Updated the Terraform setup action to its Node 24-compatible major release.
+
 [Unreleased]: https://github.com/QihuiPan/internal-developer-platform/commits/main
