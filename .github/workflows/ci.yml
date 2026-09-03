@@ -39,7 +39,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v4
       - name: Check Terraform formatting
         run: terraform fmt -check -recursive terraform
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
       - name: Lint Helm chart
         run: helm lint deploy/helm/platform-api
 

@@ -19,5 +19,6 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 - Applied canonical Terraform formatting so the infrastructure CI gate passes.
 - Updated the Terraform setup action to its Node 24-compatible major release.
+- Updated the Helm setup action to its Node 24-compatible major release.
 
 [Unreleased]: https://github.com/QihuiPan/internal-developer-platform/commits/main
