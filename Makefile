@@ -1,0 +1,16 @@
+.PHONY: test verify run benchmark
+
+test:
+	go test -race -cover ./...
+
+verify:
+	go fmt ./...
+	go vet ./...
+	go test -race -cover ./...
+	go build ./cmd/platform-api ./cmd/platformctl
+
+run:
+	go run ./cmd/platform-api
+
+benchmark:
+	go test -run '^$$' -bench . -benchmem ./internal/...

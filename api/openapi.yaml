@@ -1,0 +1,117 @@
+openapi: 3.1.0
+info:
+  title: Internal Developer Platform API
+  version: 0.1.0
+  description: A retry-safe control-plane API for self-service service creation.
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      operationId: health
+      responses:
+        "200": {description: Process is healthy}
+  /readyz:
+    get:
+      operationId: readiness
+      responses:
+        "200": {description: Process is ready}
+  /v1/services:
+    post:
+      operationId: createService
+      parameters:
+        - {$ref: "#/components/parameters/IdempotencyKey"}
+        - {$ref: "#/components/parameters/Actor"}
+        - {$ref: "#/components/parameters/Role"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ServiceDescriptor"}
+      responses:
+        "202": {description: Service operation accepted}
+        "409": {description: Name or idempotency conflict}
+        "422": {description: Descriptor validation failed}
+  /v1/services/{name}:
+    get:
+      operationId: getService
+      parameters:
+        - {name: name, in: path, required: true, schema: {type: string}}
+        - {$ref: "#/components/parameters/Actor"}
+        - {$ref: "#/components/parameters/Role"}
+      responses:
+        "200": {description: Service catalogue record}
+        "404": {description: Service not found}
+  /v1/operations/{id}:
+    get:
+      operationId: getOperation
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+        - {$ref: "#/components/parameters/Actor"}
+        - {$ref: "#/components/parameters/Role"}
+      responses:
+        "200": {description: Operation state and step attempts}
+        "404": {description: Operation not found}
+  /v1/operations/{id}/retry:
+    post:
+      operationId: retryOperation
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+        - {$ref: "#/components/parameters/Actor"}
+        - {$ref: "#/components/parameters/Role"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties: {reason: {type: string, minLength: 1}}
+      responses:
+        "202": {description: Retry accepted}
+        "409": {description: Operation is not retryable}
+  /v1/audit-events:
+    get:
+      operationId: listAuditEvents
+      parameters:
+        - {$ref: "#/components/parameters/Actor"}
+        - {$ref: "#/components/parameters/Role"}
+      responses:
+        "200": {description: Append-only administrative event stream}
+components:
+  parameters:
+    IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+    Actor: {name: X-Actor, in: header, required: true, schema: {type: string}}
+    Role: {name: X-Role, in: header, required: true, schema: {type: string, enum: [developer, service_owner, platform_admin, auditor]}}
+  schemas:
+    ServiceDescriptor:
+      type: object
+      required: [apiVersion, kind, metadata, spec]
+      properties:
+        apiVersion: {const: platform.demo/v1}
+        kind: {const: Service}
+        metadata:
+          type: object
+          required: [name, owner]
+          properties:
+            name: {type: string, pattern: "^[a-z][a-z0-9-]{1,61}[a-z0-9]$"}
+            owner: {type: string, minLength: 1}
+        spec:
+          type: object
+          required: [template, runtime, environments, observability]
+          properties:
+            template: {type: string, enum: [go-http@1.0.0, python-http@1.0.0, node-http@1.0.0]}
+            runtime:
+              type: object
+              properties: {port: {type: integer, minimum: 1, maximum: 65535}, replicas: {type: integer, minimum: 1, maximum: 10}}
+            resources:
+              type: array
+              items:
+                type: object
+                properties: {type: {type: string, enum: [postgres, redis]}, plan: {type: string, enum: [small, medium]}}
+            environments:
+              type: array
+              items: {type: string, enum: [dev, staging, production]}
+            observability:
+              type: object
+              properties: {availabilitySLO: {type: number, minimum: 90, maximum: 100}}

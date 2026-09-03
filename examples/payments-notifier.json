@@ -1,0 +1,29 @@
+{
+  "apiVersion": "platform.demo/v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "payments-notifier",
+    "owner": "team-payments"
+  },
+  "spec": {
+    "template": "go-http@1.0.0",
+    "runtime": {
+      "port": 8080,
+      "replicas": 2
+    },
+    "resources": [
+      {
+        "type": "postgres",
+        "plan": "small"
+      }
+    ],
+    "environments": [
+      "dev",
+      "staging",
+      "production"
+    ],
+    "observability": {
+      "availabilitySLO": 99.9
+    }
+  }
+}

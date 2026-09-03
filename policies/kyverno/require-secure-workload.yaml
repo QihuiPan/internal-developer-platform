@@ -1,0 +1,52 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-secure-workload
+  annotations:
+    policies.kyverno.io/title: Require secure workload defaults
+    policies.kyverno.io/category: Pod Security Standards
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-non-root-read-only-and-limits
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      validate:
+        message: Containers must run as non-root with a read-only filesystem, no privilege escalation, and resource limits.
+        foreach:
+          - list: request.object.spec.containers
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.securityContext.runAsNonRoot || request.object.spec.securityContext.runAsNonRoot || false }}"
+                    operator: NotEquals
+                    value: true
+                  - key: "{{ element.securityContext.readOnlyRootFilesystem || false }}"
+                    operator: NotEquals
+                    value: true
+                  - key: "{{ element.securityContext.allowPrivilegeEscalation || true }}"
+                    operator: NotEquals
+                    value: false
+                  - key: "{{ element.resources.limits.memory || '' }}"
+                    operator: Equals
+                    value: ""
+                  - key: "{{ element.resources.limits.cpu || '' }}"
+                    operator: Equals
+                    value: ""
+    - name: deny-privileged-and-hostpath
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      validate:
+        message: Privileged containers and hostPath volumes are prohibited.
+        pattern:
+          spec:
+            "=(volumes)":
+              - "X(hostPath)": "null"
+            containers:
+              - "=(securityContext)":
+                  "=(privileged)": "false"

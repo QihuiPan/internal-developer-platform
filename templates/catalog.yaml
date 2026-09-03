@@ -1,0 +1,22 @@
+apiVersion: platform.demo/v1
+kind: TemplateCatalog
+templates:
+  - id: go-http@1.0.0
+    runtime: go1.26
+    entrypoint: cmd/server/main.go
+    lifecycle: stable
+  - id: python-http@1.0.0
+    runtime: python3.14
+    entrypoint: app.py
+    lifecycle: stable
+  - id: node-http@1.0.0
+    runtime: node24
+    entrypoint: server.js
+    lifecycle: stable
+requiredOutputs:
+  - README.md
+  - service.yaml
+  - Dockerfile
+  - deploy/kubernetes.yaml
+  - .github/workflows/ci.yml
+  - CODEOWNERS

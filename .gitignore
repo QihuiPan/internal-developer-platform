@@ -1,0 +1,10 @@
+.platform/
+.env
+*.log
+coverage.out
+dist/
+node_modules/
+.idea/
+.vscode/
+work/
+outputs/

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+          cache: true
+      - name: Format check
+        run: test -z "$(gofmt -l .)"
+      - name: Unit, integration, and resilience tests
+        run: go test -race -coverprofile=coverage.out ./...
+      - name: Static analysis
+        run: go vet ./...
+      - name: Build binaries
+        run: go build ./cmd/platform-api ./cmd/platformctl
+      - name: Check portal JavaScript
+        run: node --check portal/app.js
+
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive terraform
+      - uses: azure/setup-helm@v4
+      - name: Lint Helm chart
+        run: helm lint deploy/helm/platform-api
+
+  changelog:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Require an English changelog entry
+        run: .github/scripts/require-changelog.sh

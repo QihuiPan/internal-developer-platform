@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Self-service portal for the Internal Developer Platform demonstration">
+    <title>Internal Developer Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">Platform Engineering</p>
+        <h1>Launch a service on the golden path</h1>
+        <p class="lead">Create a secure repository, deployment manifest, resource plan, and catalogue record from one versioned descriptor.</p>
+      </div>
+      <div class="health" id="health" aria-live="polite"><span></span> Checking API</div>
+    </header>
+    <main>
+      <section class="panel" aria-labelledby="create-title">
+        <div class="section-heading">
+          <div><p class="step">01</p><h2 id="create-title">Service details</h2></div>
+          <p>Secure defaults are applied automatically.</p>
+        </div>
+        <form id="service-form">
+          <label>Service name<input name="name" value="payments-notifier" pattern="[a-z][a-z0-9-]{1,61}[a-z0-9]" required></label>
+          <label>Owner team<input name="owner" value="team-payments" required></label>
+          <label>Template<select name="template"><option>go-http@1.0.0</option><option>python-http@1.0.0</option><option>node-http@1.0.0</option></select></label>
+          <label>Availability SLO<input name="slo" type="number" value="99.9" min="90" max="100" step="0.1" required></label>
+          <fieldset><legend>Managed resources</legend><label class="choice"><input name="postgres" type="checkbox" checked> PostgreSQL</label><label class="choice"><input name="redis" type="checkbox"> Redis</label></fieldset>
+          <button type="submit">Create service</button>
+        </form>
+      </section>
+      <section class="panel output" aria-labelledby="operation-title">
+        <div class="section-heading"><div><p class="step">02</p><h2 id="operation-title">Operation</h2></div><p id="operation-summary">Submit a service to begin.</p></div>
+        <ol id="steps" class="steps"><li>Validate intent</li><li>Plan resources</li><li>Render repository</li><li>Verify output</li></ol>
+        <pre id="response" tabindex="0" aria-label="API response">No operation yet.</pre>
+      </section>
+    </main>
+    <footer>Demo identity: <code>portal-user</code> / <code>developer</code>. Replace the header adapter with OIDC before production use.</footer>
+  </body>
+</html>

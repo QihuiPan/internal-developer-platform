@@ -1,0 +1,10 @@
+.git
+.github
+.platform
+work
+outputs
+docs
+portal
+terraform
+policies
+*.md
