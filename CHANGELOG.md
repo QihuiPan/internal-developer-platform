@@ -15,6 +15,10 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 - Added unit, integration, end-to-end, resilience, and benchmark coverage.
 - Added architecture records, threat model, SLOs, runbook, demo guide, and contribution controls.
 
+### Changed
+
+- Changed repository visibility from private to public on 2026-09-04 with the repository owner's explicit approval.
+
 ### Fixed
 
 - Applied canonical Terraform formatting so the infrastructure CI gate passes.
