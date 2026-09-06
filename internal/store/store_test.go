@@ -76,3 +76,30 @@ func TestListsServicesAndOperationsNewestFirst(t *testing.T) {
 		t.Fatal("lists are not ordered newest first")
 	}
 }
+
+func TestReturnedRecordsAreIsolatedSnapshots(t *testing.T) {
+	state, err := Open(filepath.Join(t.TempDir(), "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := state.CreateService("alice", "test", "snapshot-request", descriptor("snapshot-service"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	created.Operation.Steps[0].Status = domain.StepFailed
+	created.Service.Descriptor.Spec.Environments[0] = "production"
+	operation, err := state.Operation(created.Operation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := state.Service("snapshot-service")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if operation.Steps[0].Status != domain.StepPending {
+		t.Fatal("returned operation shared mutable step storage")
+	}
+	if service.Descriptor.Spec.Environments[0] != "dev" {
+		t.Fatal("returned service shared mutable environment storage")
+	}
+}

@@ -80,7 +80,7 @@ func (s *Store) CreateService(actor, reason, key string, descriptor domain.Servi
 			return domain.CreateResult{}, ErrIdempotencyConflict
 		}
 		service := s.state.Services[operation.Target]
-		return domain.CreateResult{Service: service, Operation: operation, Replayed: true}, nil
+		return domain.CreateResult{Service: cloneService(service), Operation: cloneOperation(operation), Replayed: true}, nil
 	}
 	if _, ok := s.state.Services[descriptor.Metadata.Name]; ok {
 		return domain.CreateResult{}, ErrConflict
@@ -107,7 +107,7 @@ func (s *Store) CreateService(actor, reason, key string, descriptor domain.Servi
 	if err := s.saveLocked(); err != nil {
 		return domain.CreateResult{}, err
 	}
-	return domain.CreateResult{Service: service, Operation: operation}, nil
+	return domain.CreateResult{Service: cloneService(service), Operation: cloneOperation(operation)}, nil
 }
 
 func (s *Store) Service(name string) (domain.ServiceRecord, error) {
@@ -117,7 +117,7 @@ func (s *Store) Service(name string) (domain.ServiceRecord, error) {
 	if !ok {
 		return domain.ServiceRecord{}, ErrNotFound
 	}
-	return value, nil
+	return cloneService(value), nil
 }
 
 func (s *Store) Services() []domain.ServiceRecord {
@@ -125,7 +125,7 @@ func (s *Store) Services() []domain.ServiceRecord {
 	defer s.mu.RUnlock()
 	items := make([]domain.ServiceRecord, 0, len(s.state.Services))
 	for _, service := range s.state.Services {
-		items = append(items, service)
+		items = append(items, cloneService(service))
 	}
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].CreatedAt.After(items[j].CreatedAt)
@@ -140,7 +140,7 @@ func (s *Store) Operation(id string) (domain.Operation, error) {
 	if !ok {
 		return domain.Operation{}, ErrNotFound
 	}
-	return value, nil
+	return cloneOperation(value), nil
 }
 
 func (s *Store) Operations() []domain.Operation {
@@ -148,7 +148,7 @@ func (s *Store) Operations() []domain.Operation {
 	defer s.mu.RUnlock()
 	items := make([]domain.Operation, 0, len(s.state.Operations))
 	for _, operation := range s.state.Operations {
-		items = append(items, operation)
+		items = append(items, cloneOperation(operation))
 	}
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].CreatedAt.After(items[j].CreatedAt)
@@ -190,7 +190,7 @@ func (s *Store) StartStep(operationID, name string, status domain.OperationStatu
 	if err := s.saveLocked(); err != nil {
 		return domain.Operation{}, err
 	}
-	return operation, nil
+	return cloneOperation(operation), nil
 }
 
 func (s *Store) CompleteStep(operationID, name string) error {
@@ -289,13 +289,31 @@ func (s *Store) RetryOperation(id, actor, reason string) (domain.Operation, erro
 	if err := s.saveLocked(); err != nil {
 		return domain.Operation{}, err
 	}
-	return operation, nil
+	return cloneOperation(operation), nil
 }
 
 func (s *Store) AuditEvents() []domain.AuditEvent {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return append([]domain.AuditEvent(nil), s.state.AuditEvents...)
+}
+
+func cloneService(value domain.ServiceRecord) domain.ServiceRecord {
+	value.Descriptor.Spec.Resources = append([]domain.ResourceSpec(nil), value.Descriptor.Spec.Resources...)
+	value.Descriptor.Spec.Environments = append([]string(nil), value.Descriptor.Spec.Environments...)
+	return value
+}
+
+func cloneOperation(value domain.Operation) domain.Operation {
+	value.Steps = append([]domain.OperationStep(nil), value.Steps...)
+	if value.Links != nil {
+		links := make(map[string]string, len(value.Links))
+		for name, target := range value.Links {
+			links[name] = target
+		}
+		value.Links = links
+	}
+	return value
 }
 
 func (s *Store) saveLocked() error {

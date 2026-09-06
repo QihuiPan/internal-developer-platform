@@ -36,6 +36,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ### Fixed
 
+- Isolated operation and service snapshots from mutable store state to eliminate API-versus-worker data races.
 - Applied canonical Terraform formatting so the infrastructure CI gate passes.
 - Updated the Terraform setup action to its Node 24-compatible major release.
 - Updated the Helm setup action to its Node 24-compatible major release.
