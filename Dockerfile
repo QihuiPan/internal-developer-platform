@@ -18,5 +18,4 @@ EXPOSE 8080
 ENV PLATFORM_ADDRESS=:8080
 ENV PLATFORM_DATA_PATH=/var/lib/platform/state.json
 ENV GENERATED_SERVICES_DIR=/var/lib/platform/generated
-ENV PLATFORM_AUTH_MODE=demo
 ENTRYPOINT ["/platform-api"]

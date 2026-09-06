@@ -6,6 +6,11 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+### Fixed
+
+- Updated Docker release actions to their Node 24-compatible major versions.
+- Removed a redundant authentication-mode Docker environment declaration that triggered a false secret-detection annotation.
+
 ## [0.2.0] - 2026-09-07
 
 ### Added
