@@ -11,6 +11,10 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 - Updated Docker release actions to their Node 24-compatible major versions.
 - Removed a redundant authentication-mode Docker environment declaration that triggered a false secret-detection annotation.
 
+### Security
+
+- Enabled GitHub private vulnerability reporting for coordinated disclosure on the public repository.
+
 ## [0.2.0] - 2026-09-07
 
 ### Added
