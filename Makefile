@@ -1,4 +1,4 @@
-.PHONY: test verify run benchmark
+.PHONY: test verify run benchmark smoke
 
 test:
 	go test -race -cover ./...
@@ -14,3 +14,6 @@ run:
 
 benchmark:
 	go test -run '^$$' -bench . -benchmem ./internal/...
+
+smoke:
+	.github/scripts/smoke-test.sh

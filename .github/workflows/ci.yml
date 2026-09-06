@@ -30,7 +30,11 @@ jobs:
       - name: Build binaries
         run: go build ./cmd/platform-api ./cmd/platformctl
       - name: Check portal JavaScript
-        run: node --check portal/app.js
+        run: node --check web/static/app.js
+      - name: Run binary smoke test
+        run: .github/scripts/smoke-test.sh
+      - name: Build container image
+        run: docker build --tag platform-api:ci .
 
   infrastructure:
     runs-on: ubuntu-latest

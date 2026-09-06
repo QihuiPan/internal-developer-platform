@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "replicaCount": {"type": "integer", "enum": [1]},
+    "auth": {
+      "type": "object",
+      "required": ["mode", "role", "existingSecret", "tokenKey"],
+      "properties": {
+        "mode": {"type": "string", "enum": ["demo", "token"]},
+        "role": {"type": "string", "enum": ["developer", "service_owner", "platform_admin", "auditor"]},
+        "existingSecret": {"type": "string"},
+        "tokenKey": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

@@ -40,6 +40,15 @@ func TestProcessGeneratesADeployableRepository(t *testing.T) {
 			t.Errorf("missing %s: %v", relative, err)
 		}
 	}
+	manifest, err := os.ReadFile(filepath.Join(root, "generated", "payments-notifier", "deploy", "kubernetes.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{"kind: Deployment", "kind: Service", "kind: NetworkPolicy", "runAsNonRoot: true"} {
+		if !strings.Contains(string(manifest), expected) {
+			t.Errorf("generated manifest is missing %q", expected)
+		}
+	}
 }
 
 func TestProcessSupportsEveryPublishedTemplate(t *testing.T) {

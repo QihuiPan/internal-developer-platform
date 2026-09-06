@@ -80,3 +80,7 @@ func Can(role Role, action string) bool {
 	}
 	return permissions[role][action]
 }
+
+func ValidRole(role Role) bool {
+	return role == RoleDeveloper || role == RoleServiceOwner || role == RolePlatformAdmin || role == RoleAuditor
+}

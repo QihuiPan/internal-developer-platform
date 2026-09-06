@@ -35,6 +35,17 @@ spec:
               value: /var/lib/platform/state.json
             - name: GENERATED_SERVICES_DIR
               value: /var/lib/platform/generated
+            - name: PLATFORM_AUTH_MODE
+              value: {{ .Values.auth.mode | quote }}
+            - name: PLATFORM_AUTH_ROLE
+              value: {{ .Values.auth.role | quote }}
+            {{ if eq .Values.auth.mode "token" }}
+            - name: PLATFORM_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "auth.existingSecret is required when auth.mode=token" .Values.auth.existingSecret }}
+                  key: {{ .Values.auth.tokenKey | quote }}
+            {{ end }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

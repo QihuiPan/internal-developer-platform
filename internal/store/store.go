@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -119,6 +120,19 @@ func (s *Store) Service(name string) (domain.ServiceRecord, error) {
 	return value, nil
 }
 
+func (s *Store) Services() []domain.ServiceRecord {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	items := make([]domain.ServiceRecord, 0, len(s.state.Services))
+	for _, service := range s.state.Services {
+		items = append(items, service)
+	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].CreatedAt.After(items[j].CreatedAt)
+	})
+	return items
+}
+
 func (s *Store) Operation(id string) (domain.Operation, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -127,6 +141,19 @@ func (s *Store) Operation(id string) (domain.Operation, error) {
 		return domain.Operation{}, ErrNotFound
 	}
 	return value, nil
+}
+
+func (s *Store) Operations() []domain.Operation {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	items := make([]domain.Operation, 0, len(s.state.Operations))
+	for _, operation := range s.state.Operations {
+		items = append(items, operation)
+	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].CreatedAt.After(items[j].CreatedAt)
+	})
+	return items
 }
 
 func (s *Store) PendingOperations() []string {
@@ -203,6 +230,11 @@ func (s *Store) FailOperation(operationID, stepName, message string) error {
 	service.Status, service.UpdatedAt = domain.ServiceFailed, now
 	s.state.Services[operation.Target] = service
 	s.state.Operations[operationID] = operation
+	auditID, err := newID("audit")
+	if err != nil {
+		return err
+	}
+	s.state.AuditEvents = append(s.state.AuditEvents, domain.AuditEvent{ID: auditID, Actor: "platform-worker", Action: "service.create.failed", Target: operation.Target, Reason: message, CreatedAt: now})
 	return s.saveLocked()
 }
 

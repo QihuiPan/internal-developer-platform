@@ -8,10 +8,10 @@ Protected assets include service desired state, repository administration, Terra
 
 | Threat | Example | Current control | Required production control |
 | --- | --- | --- | --- |
-| Spoofing | Caller supplies another team's role | Demo adapter requires explicit identity and fails closed | Verify signed OIDC JWTs and derive roles from trusted claims |
+| Spoofing | Caller supplies another team's role | Local demo adapter fails closed; token mode assigns the role from server configuration | Verify signed OIDC JWTs and derive roles from trusted claims |
 | Tampering | Request changes under a reused idempotency key | SHA-256 request fingerprint returns a conflict | Sign outbox events and protect database writes with least privilege |
 | Repudiation | Administrator retries without explanation | Append-only audit event and required retry reason | Export audit events to immutable retention storage |
-| Information disclosure | Secret value appears in Git or portal | No secret-value fields; generated assets use references only | External Secrets and automated secret scanning |
+| Information disclosure | Secret value appears in Git, portal, or a downloaded archive | No secret-value fields; generated assets use references only; browser token fields are not persisted | External Secrets and automated secret scanning |
 | Denial of service | Oversized JSON or operation flood | 1 MiB request cap, bounded queue, HTTP timeouts | Rate limits, quotas, backpressure, and workload isolation |
 | Elevation of privilege | Privileged or hostPath workload | Kyverno deny policy, non-root images, dropped capabilities | Signed images, verified provenance, and protected policy changes |
 | Supply-chain compromise | Mutable image or workflow action changes | Generated manifest requires a digest placeholder | Enforce digests, pin actions by commit, generate SBOMs, verify signatures |
@@ -27,4 +27,4 @@ Protected assets include service desired state, repository administration, Terra
 
 ## Accepted MVP risks
 
-Header-based identity, file-backed state, and filesystem repository generation are local-demo mechanisms. They are not acceptable on an untrusted network. The quick start states this explicitly, and the Helm chart should be deployed only in an isolated development cluster until OIDC and the PostgreSQL adapter are complete.
+Header-based demo identity, shared-token identity, file-backed state, and filesystem repository generation are starter mechanisms. Demo mode is not acceptable on an untrusted network. Token mode requires TLS and is suitable only for a small shared evaluation because every holder receives the same server-configured role. Use OIDC, resource-level authorization, centralized secrets, and the PostgreSQL adapter for a multi-team production deployment.

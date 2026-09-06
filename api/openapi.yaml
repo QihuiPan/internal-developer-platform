@@ -1,11 +1,16 @@
 openapi: 3.1.0
 info:
   title: Internal Developer Platform API
-  version: 0.1.0
-  description: A retry-safe control-plane API for self-service service creation.
+  version: 0.2.0
+  description: A retry-safe control-plane API with an embedded portal, catalogue queries, operation history, and demo or Bearer-token authentication.
 servers:
   - url: http://localhost:8080
 paths:
+  /v1/config:
+    get:
+      operationId: getPublicConfig
+      responses:
+        "200": {description: Public runtime mode and build version}
   /healthz:
     get:
       operationId: health
@@ -17,6 +22,13 @@ paths:
       responses:
         "200": {description: Process is ready}
   /v1/services:
+    get:
+      operationId: listServices
+      parameters:
+        - {$ref: "#/components/parameters/Actor"}
+        - {$ref: "#/components/parameters/Role"}
+      responses:
+        "200": {description: Service catalogue entries ordered newest first}
     post:
       operationId: createService
       parameters:
@@ -32,6 +44,14 @@ paths:
         "202": {description: Service operation accepted}
         "409": {description: Name or idempotency conflict}
         "422": {description: Descriptor validation failed}
+  /v1/operations:
+    get:
+      operationId: listOperations
+      parameters:
+        - {$ref: "#/components/parameters/Actor"}
+        - {$ref: "#/components/parameters/Role"}
+      responses:
+        "200": {description: Operations ordered newest first}
   /v1/services/{name}:
     get:
       operationId: getService
@@ -42,6 +62,19 @@ paths:
       responses:
         "200": {description: Service catalogue record}
         "404": {description: Service not found}
+  /v1/services/{name}/archive:
+    get:
+      operationId: downloadServiceArchive
+      parameters:
+        - {name: name, in: path, required: true, schema: {type: string}}
+        - {$ref: "#/components/parameters/Actor"}
+        - {$ref: "#/components/parameters/Role"}
+      responses:
+        "200":
+          description: ZIP archive of the generated service repository
+          content:
+            application/zip: {schema: {type: string, format: binary}}
+        "409": {description: Generated repository is not ready}
   /v1/operations/{id}:
     get:
       operationId: getOperation
@@ -79,10 +112,15 @@ paths:
       responses:
         "200": {description: Append-only administrative event stream}
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Required when the server runs in token authentication mode.
   parameters:
     IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
     Actor: {name: X-Actor, in: header, required: true, schema: {type: string}}
-    Role: {name: X-Role, in: header, required: true, schema: {type: string, enum: [developer, service_owner, platform_admin, auditor]}}
+    Role: {name: X-Role, in: header, required: false, description: Required in demo mode and ignored in token mode., schema: {type: string, enum: [developer, service_owner, platform_admin, auditor]}}
   schemas:
     ServiceDescriptor:
       type: object

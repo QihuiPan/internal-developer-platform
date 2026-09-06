@@ -10,7 +10,7 @@ spec:
   policyTypes: ["Ingress", "Egress"]
   ingress:
     - from:
-        - namespaceSelector: {}
+        - podSelector: {}
       ports:
         - protocol: TCP
           port: 8080

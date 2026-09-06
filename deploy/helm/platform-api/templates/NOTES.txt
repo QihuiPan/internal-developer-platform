@@ -1,0 +1,12 @@
+The Internal Developer Platform is installed.
+
+Open a local tunnel:
+
+  kubectl port-forward service/{{ .Release.Name }}-platform-api 8080:{{ .Values.service.port }}
+
+Then visit http://127.0.0.1:8080/.
+{{- if eq .Values.auth.mode "demo" }}
+
+WARNING: Demo authentication is enabled. Do not expose this release to an untrusted network.
+For a shared installation, create a Secret and set auth.mode=token and auth.existingSecret.
+{{- end }}

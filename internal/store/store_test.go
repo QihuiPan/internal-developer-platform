@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -53,5 +54,25 @@ func TestIdempotencyKeyRejectsDifferentPayload(t *testing.T) {
 	_, err = state.CreateService("alice", "test", "request-123", descriptor("reporting-worker"))
 	if !errors.Is(err, ErrIdempotencyConflict) {
 		t.Fatalf("expected idempotency conflict, got %v", err)
+	}
+}
+
+func TestListsServicesAndOperationsNewestFirst(t *testing.T) {
+	state, err := Open(filepath.Join(t.TempDir(), "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for index, name := range []string{"first-service", "second-service"} {
+		if _, err := state.CreateService("alice", "test", fmt.Sprintf("request-%03d", index), descriptor(name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	services := state.Services()
+	operations := state.Operations()
+	if len(services) != 2 || len(operations) != 2 {
+		t.Fatalf("unexpected list lengths: services=%d operations=%d", len(services), len(operations))
+	}
+	if services[0].Descriptor.Metadata.Name != "second-service" || operations[0].Target != "second-service" {
+		t.Fatal("lists are not ordered newest first")
 	}
 }

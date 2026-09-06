@@ -8,7 +8,7 @@ The platform accepts small, versioned declarations of service intent and converg
 
 | Boundary | Owns | Does not own |
 | --- | --- | --- |
-| Portal / CLI | Input collection, progress display | Cloud credentials or orchestration state |
+| Embedded portal / CLI | Input collection, progress display, generated-repository download | Cloud credentials or orchestration state |
 | Platform API | Authentication adapter, RBAC, validation, catalogue, operations, audit | Direct Kubernetes mutation |
 | Store | Desired state, idempotency records, checkpoints, audit events | External-system state |
 | Reconciler | Step ordering, retries, verification | User-facing request lifecycle |
@@ -29,7 +29,7 @@ Each published HTTP renderer creates:
 - a minimal service with health, readiness, and metrics endpoints;
 - a two-stage non-root container image;
 - a Kubernetes Deployment with probes, requests, limits, dropped capabilities, and a read-only filesystem;
-- a default-deny NetworkPolicy;
+- a Kubernetes Service and namespace-scoped NetworkPolicy;
 - a CI workflow and CODEOWNERS file;
 - the original service descriptor for provenance.
 
@@ -37,7 +37,7 @@ The renderer is deterministic for the same descriptor. Production repository cre
 
 ## Production evolution
 
-1. Replace the header identity adapter with JWT verification and team claims from OIDC.
+1. Replace the demo and shared-token identity adapters with JWT verification and team claims from OIDC.
 2. Implement the PostgreSQL store and transactional outbox migration already modeled in `migrations/001_initial.sql`.
 3. Move the reconciler to a separately scaled worker deployment with expiring leases.
 4. Add GitHub App, Terraform runner, and Argo CD adapters with operation-scoped identities.

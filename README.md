@@ -1,43 +1,38 @@
 # Internal Developer Platform
 
 [![CI](https://github.com/QihuiPan/internal-developer-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/QihuiPan/internal-developer-platform/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/QihuiPan/internal-developer-platform)](https://github.com/QihuiPan/internal-developer-platform/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A self-service control plane that turns a versioned service descriptor into durable desired state, a tracked asynchronous operation, a secure service repository, and a GitOps deployment manifest.
+A self-contained developer platform starter that turns a service descriptor into durable desired state, a tracked asynchronous operation, and a runnable service repository with CI and Kubernetes deployment assets.
 
-This repository is an implementation-focused portfolio MVP. It emphasizes the difficult platform concerns—idempotency, reconciliation, checkpoints, authorization, auditability, secure defaults, and actionable operation state—rather than presenting a portal that hides failures.
+It is designed to be cloned and used immediately on a laptop, in Docker Compose, or on a single-replica Kubernetes installation. No database or cloud account is required for the local golden path.
 
-## What works
+## Start in two minutes
 
-- `POST /v1/services` validates a versioned descriptor and requires an idempotency key.
-- A durable local state store commits service, operation, idempotency, and audit records together.
-- A background processor checkpoints validation, planning, repository rendering, and verification.
-- A retry resumes a failed operation without repeating completed steps.
-- Versioned Go, Python, and Node HTTP templates generate health, readiness, metrics, CI, CODEOWNERS, a non-root image, Kubernetes probes, resource limits, and default-deny networking.
-- RBAC separates developer, service-owner, platform-admin, and auditor actions.
-- The portal displays live operation progress without requiring worker-log access.
-- Helm, Terraform, Kyverno, OpenAPI, PostgreSQL migration, CI, ADRs, a threat model, and a runbook provide production-shaped seams.
+### Docker Compose
 
-## Architecture
+Requirements: Docker with Compose v2.
 
-```mermaid
-flowchart LR
-    U[Developer Portal / CLI] -->|desired state + idempotency key| API[Platform API]
-    API --> STORE[(Durable state + audit log)]
-    API --> Q[Operation queue]
-    Q --> W[Reconciler]
-    W --> PLAN[Resource plan]
-    W --> REPO[Generated service repository]
-    W --> GITOPS[GitOps manifests]
-    GITOPS -. production adapter .-> ARGO[Argo CD / Kubernetes]
-    PLAN -. production adapter .-> TF[Terraform runner]
-    API --> METRICS[Health / readiness / metrics]
+```bash
+git clone https://github.com/QihuiPan/internal-developer-platform.git
+cd internal-developer-platform
+docker compose up --build
 ```
 
-The demo runs one API process and one embedded worker. Boundaries in `internal/store` and `internal/operations` are deliberately small so the durable store, queue, GitHub, Terraform, and Argo implementations can be replaced independently.
+Open [http://127.0.0.1:8080](http://127.0.0.1:8080), create the example service, and watch all reconciliation steps complete. Compose binds only to loopback by default. State and generated repositories remain in the `platform-data` Docker volume.
 
-## Quick start
+### Prebuilt release
 
-### Go
+Download the archive for Windows, macOS, or Linux from [GitHub Releases](https://github.com/QihuiPan/internal-developer-platform/releases/latest), extract it, then run:
+
+```bash
+./platform-api
+```
+
+Open [http://127.0.0.1:8080](http://127.0.0.1:8080). On Windows, run `platform-api.exe`. Every release includes SHA-256 checksums.
+
+### Source checkout
 
 Requirements: Go 1.26 or newer.
 
@@ -49,23 +44,94 @@ go run ./cmd/platform-api
 In another terminal:
 
 ```bash
-go run ./cmd/platformctl -name payments-notifier -owner team-payments
+go run ./cmd/platformctl create --file examples/payments-notifier.json
+go run ./cmd/platformctl list
 ```
 
-The generated repository appears under `.platform/generated/payments-notifier`. Inspect the operation through the URL returned in the create response.
+The generated repository is written to `.platform/generated/payments-notifier` and includes a runnable service, non-root container image, CI workflow, ownership file, service descriptor, and Kubernetes resources.
 
-### Docker Compose
+## Included user workflows
+
+- Create a Go, Python, or Node HTTP service from the browser, CLI, or API.
+- Follow validation, planning, rendering, and verification in real time.
+- List catalogue entries and operation history after a restart.
+- Download every ready generated repository as a ZIP from the browser, CLI, or API.
+- Retry a failed operation from its last completed checkpoint with an audit reason.
+- Run the generated service directly, build its image, or adapt its Kubernetes manifest.
+- Protect a shared starter deployment with a Bearer token and a server-assigned RBAC role.
+
+Useful CLI commands:
 
 ```bash
-docker compose up --build
+platformctl create --name orders-api --owner team-orders --template go-http@1.0.0
+platformctl list
+platformctl get orders-api
+platformctl download orders-api
+platformctl operations
+platformctl operation OPERATION_ID
+platformctl retry --reason "Storage is available again" OPERATION_ID
+platformctl audit --role platform_admin
 ```
 
-Open `http://localhost:3000`, submit the default service, and watch the operation advance through its checkpoints. The API is available at `http://localhost:8080`.
+All commands support `--address`, `--actor`, `--role`, and `--token`. Environment equivalents are documented in [Configuration](docs/configuration.md).
 
-### Direct API request
+## Architecture
+
+```mermaid
+flowchart LR
+    U[Embedded portal / platformctl / API client] --> API[Platform API]
+    API --> STORE[(Atomic persistent state)]
+    API --> Q[Operation queue]
+    Q --> W[Checkpointed reconciler]
+    W --> PLAN[Resource plan]
+    W --> REPO[Runnable service repository]
+    W --> GITOPS[Kubernetes manifest]
+    API --> OBS[Logs / probes / metrics]
+```
+
+The downloadable binary embeds the portal and worker, so there is only one process to operate. The runtime store is intentionally single-replica; PostgreSQL, GitHub App, Terraform, and Argo CD integration points are documented production-evolution seams, not simulated cloud actions.
+
+## Authentication
+
+The default `demo` mode is zero-configuration and binds to `127.0.0.1`. It uses explicit `X-Actor` and `X-Role` headers to make RBAC behavior visible. Do not expose demo mode to an untrusted network.
+
+Use `token` mode for a shared starter instance:
 
 ```bash
-curl -i http://localhost:8080/v1/services \
+export PLATFORM_AUTH_MODE=token
+export PLATFORM_AUTH_ROLE=platform_admin
+export PLATFORM_API_TOKEN='replace-with-at-least-16-random-characters'
+./platform-api --address 0.0.0.0:8080
+```
+
+The configured role is assigned by the server and cannot be elevated by a request header. For internet-facing or multi-team production use, replace this bootstrap mechanism with verified OIDC claims as described in the [threat model](docs/threat-model.md).
+
+| Role | Create | Read | Retry | Audit |
+| --- | :---: | :---: | :---: | :---: |
+| `developer` | Yes | Yes | Yes | No |
+| `service_owner` | Yes | Yes | Yes | No |
+| `platform_admin` | Yes | Yes | Yes | Yes |
+| `auditor` | No | Yes | No | Yes |
+
+## Kubernetes
+
+The Helm chart is single-replica because the included atomic file store has one writer. For a protected installation:
+
+```bash
+kubectl create namespace platform-system
+kubectl -n platform-system create secret generic platform-api-auth --from-literal=token='replace-with-a-random-secret'
+helm upgrade --install idp deploy/helm/platform-api \
+  --namespace platform-system \
+  --set auth.mode=token \
+  --set auth.existingSecret=platform-api-auth
+```
+
+The chart enables a non-root security context, read-only root filesystem, probes, resource limits, persistent storage, and a NetworkPolicy. Set `image.repository` and an immutable `image.digest` for your registry before a production-shaped install.
+
+## API example
+
+```bash
+curl http://127.0.0.1:8080/v1/services \
   -H 'Content-Type: application/json' \
   -H 'Idempotency-Key: demo-payments-001' \
   -H 'X-Actor: alice' \
@@ -73,86 +139,45 @@ curl -i http://localhost:8080/v1/services \
   --data @examples/payments-notifier.json
 ```
 
-Repeat the same request with the same key to receive the original operation. Reuse that key with a different descriptor to receive `409 IDEMPOTENCY_CONFLICT`.
+Repeat the same request and key to receive the original operation. Reusing the key with a different descriptor returns `409 IDEMPOTENCY_CONFLICT`. See the [OpenAPI contract](api/openapi.yaml).
 
-## Operation model
+## Verification
 
-```text
-PENDING -> VALIDATING -> PLANNING -> APPLYING -> VERIFYING -> SUCCEEDED
-               |             |           |
-               +---------- FAILED <------+
-                              |
-                           RETRYING
+```bash
+make verify
+.github/scripts/smoke-test.sh
+docker build -t platform-api:local .
+helm lint deploy/helm/platform-api
+terraform fmt -check -recursive terraform
 ```
 
-Each step records its attempt count and timestamps. Set `PLATFORM_FAIL_AT_STEP=render` to exercise failure handling, remove the failpoint, then call `POST /v1/operations/{id}/retry` with a reason. Completed steps remain complete.
-
-## Identity and authorization
-
-The demonstrator uses explicit `X-Actor` and `X-Role` headers so RBAC behavior is visible and testable without an identity provider. This adapter is intentionally fail-closed: missing identity headers are rejected. Replace it with verified OIDC claims before any shared or production deployment; never expose the current adapter to an untrusted network.
-
-| Role | Create service | Read service / operation | Retry | Read audit events |
-| --- | :---: | :---: | :---: | :---: |
-| Developer | Yes | Yes | Yes | No |
-| Service owner | Yes | Yes | Yes | No |
-| Platform admin | Yes | Yes | Yes | Yes |
-| Auditor | No | Yes | No | Yes |
+CI runs unit, integration, resilience, race, smoke, container, Terraform, and Helm checks. Tagged releases cross-compile both binaries for Windows, macOS, and Linux on AMD64 and ARM64.
 
 ## Repository map
 
 ```text
 cmd/                    API and CLI entry points
-internal/api/           HTTP contract, RBAC enforcement, metrics
-internal/domain/        Descriptor, operation state, validation
-internal/operations/    Checkpointed reconciler and golden-path renderer
-internal/store/         Durable, atomic demo state store
-portal/                 Dependency-free self-service UI
+web/                    Embedded dependency-free portal
+internal/api/           HTTP contract, authentication, RBAC, metrics
+internal/domain/        Descriptor, state machine, validation
+internal/operations/    Checkpointed worker and service renderer
+internal/store/         Durable atomic starter store
 api/                    OpenAPI contract
-deploy/helm/            Secure Kubernetes packaging
-policies/kyverno/       Admission policy for workload defaults
-terraform/              Environment provisioning module and dev example
+deploy/helm/            Kubernetes packaging
+terraform/              Environment provisioning baseline
+policies/kyverno/       Workload admission policy
 migrations/             PostgreSQL production schema target
-docs/                   ADRs, threat model, runbook, SLOs, test evidence
+docs/                   Setup, operations, architecture, and evidence
 ```
 
-## Verification
+## Deliberate boundaries
 
-```bash
-go test -race -cover ./...
-go vet ./...
-go test -run '^$' -bench . -benchmem ./internal/...
-```
+This release is directly usable as a local or small shared platform starter. It is not a hosted multi-tenant platform: the included store supports one API replica, generated repository links are local filesystem URLs, and authenticated GitHub/Terraform/Argo/Grafana mutations require organization-specific adapters and credentials. These limits are explicit so users never mistake generated local evidence for completed cloud changes.
 
-CI also builds both binaries, checks portal JavaScript, validates Terraform formatting, lints the Helm chart, and requires every pull request to update `CHANGELOG.md`.
+Read [Getting Started](docs/getting-started.md), [Configuration](docs/configuration.md), [Troubleshooting](docs/troubleshooting.md), [Architecture](docs/architecture.md), [SLOs](docs/slos.md), and the [operation runbook](docs/runbooks/operation-failure.md).
 
-## Completion matrix
+## Contributing and security
 
-| Blueprint outcome | Evidence | Status |
-| --- | --- | --- |
-| Versioned service descriptor | Domain validation, OpenAPI, JSON example | Complete |
-| Retry-safe control plane | Request fingerprint, durable checkpoints, replay tests | Complete for single worker |
-| Repository and CI generation | Reconciler renderer and end-to-end tests | Complete using filesystem adapter |
-| GitOps delivery | Secure manifest generation and Helm packaging | Adapter boundary complete; Argo API integration pending |
-| Resource provisioning | Deterministic plan artefact and Terraform namespace module | Dev baseline; managed PostgreSQL/Redis providers pending |
-| Security defaults | RBAC, audit trail, OIDC design, Kyverno, hardened containers | MVP complete |
-| Observability | Structured logs, probes, Prometheus endpoint, SLO document | MVP complete; distributed tracing pending |
-| Failure recovery | Fault injection and checkpoint retry test | Complete |
-| PostgreSQL state | Production schema migration | Schema complete; runtime adapter pending |
+Every code, configuration, documentation, or infrastructure change must include an English entry in [CHANGELOG.md](CHANGELOG.md). See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
-## Trade-offs and limitations
-
-- The local MVP stores state in one atomically replaced JSON file and therefore supports one active API replica. The PostgreSQL schema shows the multi-replica target, including leases and an outbox, but is not wired into the runtime yet.
-- GitHub, Terraform, Argo CD, External Secrets, and Grafana links are adapter outputs rather than authenticated remote mutations. This keeps the repository runnable without cloud credentials and makes incomplete integration explicit.
-- The generated repository URL is a local `file://` URL. A GitHub App adapter should create the repository from the recorded immutable template version and apply branch protection.
-- The portal is a dependency-free proof of the golden path, not a production Backstage replacement.
-- Metrics are intentionally low-cardinality. OpenTelemetry propagation across future adapters remains follow-up work.
-
-See [architecture](docs/architecture.md), [SLOs](docs/slos.md), [threat model](docs/threat-model.md), [operation runbook](docs/runbooks/operation-failure.md), [test evidence](docs/test-evidence.md), and [benchmark evidence](docs/benchmarks.md).
-
-## Change policy
-
-Every code, configuration, documentation, or infrastructure change must include an English entry in `CHANGELOG.md`. CI enforces this on pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## License
-
-MIT
+Licensed under the [MIT License](LICENSE).

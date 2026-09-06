@@ -2,11 +2,11 @@
 
 ## Local verification
 
-Recorded on 2026-09-04 with Go 1.26.2 on Windows amd64.
+Originally recorded on 2026-09-04 and extended on 2026-09-07 with Go 1.26 on Windows amd64 and Linux CI.
 
 | Check | Result |
 | --- | --- |
-| `go test ./...` | Passed across API, domain, operations, and store packages |
+| `go test ./...` | Passed across API, CLI, domain, operations, store, and embedded-web packages |
 | `go vet ./...` | Passed with no findings |
 | `go build ./cmd/platform-api ./cmd/platformctl` | Passed |
 | `go test -count=20 ./internal/...` | Passed twenty consecutive runs |
@@ -15,13 +15,15 @@ Recorded on 2026-09-04 with Go 1.26.2 on Windows amd64.
 | Python generated service syntax | Passed with `python -m py_compile` |
 | Node generated service syntax | Passed with `node --check` |
 | Portal JavaScript syntax | Passed with `node --check` |
-| Portal visual inspection | Passed at desktop width with no clipping or overlap |
+| Embedded portal visual inspection | Passed at desktop width with no clipping or overlapping controls |
+| Compiled-binary smoke test | Passed API startup, embedded portal, CLI create/list, reconciliation, and generated-file checks |
+| Archive integration test | Passed ZIP creation and generated Dockerfile verification |
 
 The local host has no C compiler, so the Go race detector cannot run locally. The Linux CI job runs `go test -race` and is the release gate for data-race verification.
 
 ## End-to-end create and replay
 
-The compiled API accepted the example descriptor with HTTP 202, reconciled all four steps to `SUCCEEDED`, generated the service repository, and returned its links. Replaying the same payload with the same idempotency key returned HTTP 200, `replayed: true`, and the original operation rather than duplicating side effects.
+The compiled API accepted the example descriptor with HTTP 202, reconciled all four steps to `SUCCEEDED`, generated the service repository, returned its links, and exposed the repository as an authenticated ZIP. Replaying the same payload with the same idempotency key returned HTTP 200, `replayed: true`, and the original operation rather than duplicating side effects.
 
 ## Fault exercise
 

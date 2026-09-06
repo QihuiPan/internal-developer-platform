@@ -1,7 +1,7 @@
 replicaCount: 1
 image:
   repository: ghcr.io/qihuipan/internal-developer-platform
-  tag: latest
+  tag: v0.2.0
   digest: ""
   pullPolicy: IfNotPresent
 service:
@@ -9,6 +9,11 @@ service:
 persistence:
   enabled: true
   size: 1Gi
+auth:
+  mode: demo
+  role: platform_admin
+  existingSecret: ""
+  tokenKey: token
 resources:
   requests:
     cpu: 100m
