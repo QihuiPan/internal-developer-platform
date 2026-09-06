@@ -9,6 +9,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 ### Fixed
 
 - Updated Docker release actions to their Node 24-compatible major versions.
+- Pinned the Helm CLI version in CI to avoid network-dependent latest-version fallback behavior.
 - Removed a redundant authentication-mode Docker environment declaration that triggered a false secret-detection annotation.
 
 ### Security
